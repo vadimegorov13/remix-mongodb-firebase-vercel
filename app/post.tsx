@@ -31,10 +31,16 @@ export const getPost = async (slug: string) => {
     },
   });
 
-  //let's extract the title
-  let title = foundSlug.title;
-  // using marked, we are going to convert the markdown into HTML so the blog post can render as entered in Markdown.
-  let html = marked(foundSlug.markdown);
+  let title = "";
+  let html = marked("");
+
+  if (foundSlug) {
+    //let's extract the title
+    title = foundSlug.title;
+    // using marked, we are going to convert the markdown into HTML so the blog post can render as entered in Markdown.
+    html = marked(foundSlug.markdown);
+  }
+
   // we need to cleanup our database connection
   prisma.$disconnect();
 
@@ -70,11 +76,19 @@ export const getPostEdit = async (slug: string) => {
       slug,
     },
   });
-  let id = foundSlug.id;
-  //let's extract the title
-  let title = foundSlug.title;
-  // since we are editing and not rendering we want to pull the original markdown value stored in the db
-  let markdown = foundSlug.markdown;
+
+  let id = "";
+  let title = "";
+  let markdown = "";
+
+  if (foundSlug) {
+    id = foundSlug.id;
+    //let's extract the title
+    title = foundSlug.title;
+    // since we are editing and not rendering we want to pull the original markdown value stored in the db
+    markdown = foundSlug.markdown;
+  }
+
   // we need to cleanup our database connection
   prisma.$disconnect();
 
