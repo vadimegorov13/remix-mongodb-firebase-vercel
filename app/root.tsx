@@ -1,17 +1,22 @@
 import {
+  json,
   Link,
   Links,
   LiveReload,
+  LoaderFunction,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
-  useCatch
+  useCatch,
+  useLoaderData,
 } from "remix";
 import type { LinksFunction } from "remix";
 
 import globalStylesUrl from "~/styles/global.css";
 import darkStylesUrl from "~/styles/dark.css";
+import { commitSession, getSession } from "./session.server";
+import { auth } from "./utils/firebase";
 
 // https://remix.run/api/app#links
 export let links: LinksFunction = () => {
@@ -20,9 +25,25 @@ export let links: LinksFunction = () => {
     {
       rel: "stylesheet",
       href: darkStylesUrl,
-      media: "(prefers-color-scheme: dark)"
-    }
+      media: "(prefers-color-scheme: dark)",
+    },
   ];
+};
+
+export const loader: LoaderFunction = async ({ request }) => {
+  const session = await getSession(request.headers.get("Cookie"));
+
+  if (session.has("access_token")) {
+    const data = { user: auth.currentUser, error: session.get("error") };
+
+    return json(data, {
+      headers: {
+        "Set-Cookie": await commitSession(session),
+      },
+    });
+  } else {
+    return null;
+  }
 };
 
 // https://remix.run/api/conventions#default-export
@@ -95,7 +116,7 @@ export function CatchBoundary() {
 
 function Document({
   children,
-  title
+  title,
 }: {
   children: React.ReactNode;
   title?: string;
@@ -120,6 +141,12 @@ function Document({
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
+  // let's grab our loader data to see if it's a sessioned user
+  let data = useLoaderData();
+
+  // let's check to see if we have a user, if so we will use it to update the greeting and link logic for Login/Logout in Nav
+  let loggedIn = data?.user;
+
   return (
     <div className="remix-app">
       <header className="remix-app__header">
@@ -138,12 +165,15 @@ function Layout({ children }: { children: React.ReactNode }) {
               <li>
                 <Link to="/admin">Admin</Link>
               </li>
-              <li>
-                <a href="https://remix.run/docs">Remix Docs</a>
-              </li>
-              <li>
-                <a href="https://github.com/remix-run/remix">GitHub</a>
-              </li>
+              {!loggedIn ? (
+                <li>
+                  <Link to="/login">Login</Link>
+                </li>
+              ) : (
+                <li>
+                  <Link to="/auth/logout">Logout</Link>
+                </li>
+              )}
             </ul>
           </nav>
         </div>

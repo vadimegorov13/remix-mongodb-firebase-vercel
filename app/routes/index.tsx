@@ -1,99 +1,47 @@
-import type { MetaFunction, LoaderFunction } from "remix";
-import { useLoaderData, json, Link } from "remix";
+import { useLoaderData, json, Link, redirect, LoaderFunction } from "remix";
+import { auth } from "~/utils/firebase";
+import { getSession } from "~/session.server";
+import { destroySession, commitSession } from "~/session.server";
 
-type IndexData = {
-  resources: Array<{ name: string; url: string }>;
-  demos: Array<{ name: string; to: string }>;
+// use loader to check for existing session
+export const loader: LoaderFunction = async ({ request }) => {
+  const session = await getSession(request.headers.get("Cookie"));
+
+  if (session.has("access_token")) {
+    //user is logged in
+    const data = { user: auth.currentUser, error: session.get("error") };
+    return json(data, {
+      headers: {
+        "Set-Cookie": await commitSession(session),
+      },
+    });
+  }
+  // user is not logged in
+  return null;
 };
 
-// Loaders provide data to components and are only ever called on the server, so
-// you can connect to a database or run any server side code you want right next
-// to the component that renders it.
-// https://remix.run/api/conventions#loader
-export let loader: LoaderFunction = () => {
-  let data: IndexData = {
-    resources: [
-      {
-        name: "Remix Docs",
-        url: "https://remix.run/docs"
-      },
-      {
-        name: "React Router Docs",
-        url: "https://reactrouter.com/docs"
-      },
-      {
-        name: "Remix Discord",
-        url: "https://discord.gg/VBePs6d"
-      }
-    ],
-    demos: [
-      {
-        to: "demos/actions",
-        name: "Actions"
-      },
-      {
-        to: "demos/about",
-        name: "Nested Routes, CSS loading/unloading"
-      },
-      {
-        to: "demos/params",
-        name: "URL Params and Error Boundaries"
-      }
-    ]
-  };
-
-  // https://remix.run/api/remix#json
-  return json(data);
-};
-
-// https://remix.run/api/conventions#meta
-export let meta: MetaFunction = () => {
-  return {
-    title: "Remix Starter",
-    description: "Welcome to remix!"
-  };
-};
-
-// https://remix.run/guides/routing#index-routes
 export default function Index() {
-  let data = useLoaderData<IndexData>();
+  const data = useLoaderData();
+  let loggedIn = data?.user;
+
+  console.log(typeof data?.user)
 
   return (
     <div className="remix__page">
       <main>
-        <h2>Welcome to Remix!</h2>
-        <p>We're stoked that you're here. 🥳</p>
+        <h2>Welcome to Remix Blog Auth Tutorial!</h2>
+        {loggedIn ? <h3>{data.user.email}</h3> : null}
+
+        <h3>
+          This blog was created by <strong>Chris Benjamin</strong>
+        </h3>
         <p>
-          Feel free to take a look around the code to see how Remix does things,
-          it might be a bit different than what you’re used to. When you're
-          ready to dive deeper, we've got plenty of resources to get you
-          up-and-running quickly.
-        </p>
-        <p>
-          Check out all the demos in this starter, and then just delete the{" "}
-          <code>app/routes/demos</code> and <code>app/styles/demos</code>{" "}
-          folders when you're ready to turn this into your next project.
+          This tutorial will show you how firebase authentication functionality
+          works in Remix
         </p>
       </main>
       <aside>
-        <h2>Demos In This App</h2>
-        <ul>
-          {data.demos.map(demo => (
-            <li key={demo.to} className="remix__page__resource">
-              <Link to={demo.to} prefetch="intent">
-                {demo.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <h2>Resources</h2>
-        <ul>
-          {data.resources.map(resource => (
-            <li key={resource.url} className="remix__page__resource">
-              <a href={resource.url}>{resource.name}</a>
-            </li>
-          ))}
-        </ul>
+        <h3>Hello</h3>
       </aside>
     </div>
   );

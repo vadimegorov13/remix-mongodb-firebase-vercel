@@ -11,12 +11,17 @@ export let loader: LoaderFunction = async () => {
   return getPosts();
 };
 
-const Blogs = () => {
+const Posts = () => {
   let posts = useLoaderData<PostData[]>();
   return (
     <div>
       <h1>My Remix Blog</h1>
       <p>Click on the post name to read the post</p>
+
+      <div>
+        <Link to="/admin">Blog Admin (Edit/Create)</Link>
+      </div>
+
       <ul>
         {posts.map((post) => (
           <li className="postList" key={post.slug}>
@@ -30,4 +35,4 @@ const Blogs = () => {
   );
 };
 
-export default Blogs;
+export default Posts;
