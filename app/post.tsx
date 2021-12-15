@@ -118,3 +118,14 @@ export const updatePost = async (post: PostData) => {
   // let's send back the slug we created
   return getPost(post.slug);
 };
+
+export const deletePost = async (id: string) => {
+  await prisma.$connect();
+  await prisma.posts.delete({
+    where: {
+      id,
+    },
+  });
+  prisma.$disconnect();
+  return true;
+};

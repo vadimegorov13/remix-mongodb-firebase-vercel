@@ -1,15 +1,15 @@
-import invariant from "tiny-invariant";
-import { getPostEdit } from "~/post";
 import {
-  redirect,
-  Form,
-  useActionData,
-  useTransition,
-  useLoaderData,
   ActionFunction,
+  Form,
   LoaderFunction,
+  redirect,
+  useActionData,
+  useFormAction,
+  useLoaderData,
+  useTransition,
 } from "remix";
-import { updatePost } from "~/post";
+import invariant from "tiny-invariant";
+import { deletePost, getPostEdit, updatePost } from "~/post";
 import { PostData, PostError } from "~/utils/types";
 
 export let loader: LoaderFunction = async ({ params }) => {
@@ -25,6 +25,13 @@ export let action: ActionFunction = async ({ request }) => {
   let markdown = formData.get("markdown");
   let id = formData.get("id");
 
+  invariant(typeof id === "string");
+
+  if (formData.get("_method") === "delete") {
+    await deletePost(id);
+    return redirect("/admin");
+  }
+
   let errors: PostError = {};
   if (!title) errors.title = true;
   if (!slug) errors.slug = true;
@@ -34,15 +41,14 @@ export let action: ActionFunction = async ({ request }) => {
     return errors;
   }
 
-  console.log(
-    "calling updatePost with id, title, slug, markdown: ",
-    id,
-    title,
-    slug,
-    markdown
-  );
+  // console.log(
+  //   "calling updatePost with id, title, slug, markdown: ",
+  //   id,
+  //   title,
+  //   slug,
+  //   markdown
+  // );
 
-  invariant(typeof id === "string");
   invariant(typeof title === "string");
   invariant(typeof slug === "string");
   invariant(typeof markdown === "string");
@@ -57,7 +63,7 @@ export default function PostSlug() {
   let post = useLoaderData<PostData>();
 
   // we are going to create the slug for the user
-  let slug = "";
+  let slug = post.slug;
 
   // as the Title input is updated we will generate the slug automatically.
   // My First Post slug would equal 'my-first-post'. We will convert to lower case and we will strip spaces and replace with hyphens
@@ -72,49 +78,66 @@ export default function PostSlug() {
   };
 
   return (
-    <Form method="post">
-      <p>
-        <input className="hiddenBlogID" name="id" value={post.id}></input>
-      </p>
-      <p>
-        <label htmlFor="">
-          Post Title: {errors?.title && <em>Title is required</em>}
+    <>
+      <Form method="post">
+        <p>
           <input
-            onChange={handleChange}
-            type="text"
-            name="title"
-            defaultValue={post.title}
+            className="hiddenBlogID"
+            name="id"
+            defaultValue={post.id}
+          ></input>
+        </p>
+        <p>
+          <label htmlFor="">
+            Post Title: {errors?.title && <em>Title is required</em>}{" "}
+            <input
+              type="text"
+              name="title"
+              defaultValue={post.title}
+              onChange={handleChange}
+            />
+          </label>
+        </p>
+        <p>
+          <label htmlFor="">
+            Post Slug: {errors?.slug && <em>Slug is required</em>}
+            <input defaultValue={slug} id="slugInput" type="text" name="slug" />
+          </label>
+        </p>
+        <p>
+          <label htmlFor="markdown">Markdown:</label>{" "}
+          {errors?.markdown && <em>Markdown is required</em>}
+          <br />
+          <textarea
+            defaultValue={post.markdown}
+            name="markdown"
+            id=""
+            rows={20}
+            cols={50}
           />
-        </label>
-      </p>
-      <p>
-        <label htmlFor="">
-          Post Slug: {errors?.slug && <em>Slug is required</em>}
+        </p>
+        <p>
+          <button type="submit" className="adminButton updateButton">
+            {transition.submission ? "Updating..." : "Update Post"}
+          </button>
+        </p>
+      </Form>
+      <Form method="post">
+        <p>
           <input
-            defaultValue={post.slug}
-            id="slugInput"
-            type="text"
-            name="slug"
-          />
-        </label>
-      </p>
-      <p>
-        <label htmlFor="markdown">Markdown:</label>
-        {errors?.markdown && <em>Markdown is required</em>}
-        <br />
-        <textarea
-          defaultValue={post.markdown}
-          name="markdown"
-          id=""
-          rows={20}
-          cols={30}
-        />
-      </p>
-      <p>
-        <button type="submit">
-          {transition.submission ? "Updating..." : "Update Post"}
-        </button>
-      </p>
-    </Form>
+            name="_method"
+            type="hidden"
+            defaultValue={post.id}
+            value="delete"
+          ></input>
+          <input type="hidden" name="id" defaultValue={post.id}></input>
+        </p>
+        <p>
+          <button className="adminButton deleteButton" type="submit">
+            Delete
+          </button>
+        </p>
+      </Form>
+    </>
   );
 }

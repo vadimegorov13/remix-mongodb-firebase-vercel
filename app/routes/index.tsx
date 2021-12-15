@@ -23,9 +23,6 @@ export const loader: LoaderFunction = async ({ request }) => {
 export default function Index() {
   const data = useLoaderData();
   let loggedIn = data?.user;
-
-  console.log(typeof data?.user)
-
   return (
     <div className="remix__page">
       <main>
